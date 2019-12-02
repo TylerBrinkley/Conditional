@@ -33,7 +33,5 @@ namespace Conditional
         public new StringCondition Clone() => new StringCondition(_operator, Value?.CloneInternal());
 
         protected override ValueCondition<string> CloneInternal() => Clone();
-
-        protected override ValueCondition<string> GetInvertedCondition() => new StringCondition(_operator.Invert(), Value?.CloneInternal());
     }
 }

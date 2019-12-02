@@ -41,7 +41,5 @@ namespace Conditional
         public new NumericRangeCondition<T> Clone() => new NumericRangeCondition<T>(_min.CloneInternal(), _max.CloneInternal(), Inclusive);
 
         protected override ValueCondition<T> CloneInternal() => Clone();
-
-        protected override ValueCondition<T> GetInvertedCondition() => new NumericRangeCondition<T>(_min.CloneInternal(), _max.CloneInternal(), !Inclusive);
     }
 }

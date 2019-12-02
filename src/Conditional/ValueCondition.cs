@@ -11,20 +11,16 @@ namespace Conditional
         }
 
         [JsonConstructor]
-        private ValueCondition(Joiner? joiner, IReadOnlyList<ValueCondition<T>> conditions)
+        private ValueCondition(Joiner? joiner, IReadOnlyList<ValueCondition<T>>? conditions)
             : base(joiner, conditions)
         {
         }
 
         protected sealed override ValueCondition<T> CreateJoinedCondition(Joiner joiner, IReadOnlyList<ValueCondition<T>> conditions) => new ValueCondition<T>(joiner, conditions);
 
-        public new ValueCondition<T> And(ValueCondition<T> condition) => base.And(condition);
+        protected sealed override bool ShouldSerializeConditions() => true;
 
-        public new ValueCondition<T> Or(ValueCondition<T> condition) => base.Or(condition);
-
-        protected sealed override bool ShouldSerializeConditions() => base.ShouldSerializeConditions();
-
-        protected sealed override bool ShouldSerializeJoiner() => base.ShouldSerializeJoiner();
+        protected sealed override bool ShouldSerializeJoiner() => true;
 
         public bool Evaluate(T value) => Evaluate(value, null);
 
@@ -48,6 +44,6 @@ namespace Conditional
 
         protected override ValueCondition<T> CloneInternal() => Clone();
 
-        object ICloneable.Clone() => Clone();
+        object ICloneable.Clone() => CloneInternal();
     }
 }

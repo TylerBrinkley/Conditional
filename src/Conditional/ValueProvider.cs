@@ -31,6 +31,6 @@ namespace Conditional
 
         public virtual T GetValue(object? context) => Value!.Value;
 
-        internal protected virtual ValueProvider<T> CloneInternal() => this;
+        protected internal virtual ValueProvider<T> CloneInternal() => this;
     }
 }

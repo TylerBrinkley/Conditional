@@ -10,7 +10,7 @@ namespace Conditional
     {
         private StringOperator _operator;
         private CollectionOperator _compoundOperator;
-        private ValueProvider<IReadOnlyCollection<string>> _values;
+        private ValueProvider<IEnumerable<string>> _values;
 
         [JsonRequired]
         public StringOperator Operator
@@ -27,7 +27,7 @@ namespace Conditional
         }
 
         [JsonRequired]
-        public ValueProvider<IReadOnlyCollection<string>> Values
+        public ValueProvider<IEnumerable<string>> Values
         {
             get => _values;
             set => _values = value ?? throw new ArgumentNullException(nameof(value));
@@ -39,12 +39,12 @@ namespace Conditional
         }
 
         public StringCompoundCondition(StringOperator @operator, CollectionOperator compoundOperator, IEnumerable<string> values)
-            : this(@operator, compoundOperator, new ValueProvider<IReadOnlyCollection<string>>(values.ToList().AsReadOnly()))
+            : this(@operator, compoundOperator, new ValueProvider<IEnumerable<string>>(values.ToList().AsReadOnly()))
         {
         }
 
         [JsonConstructor]
-        public StringCompoundCondition(StringOperator @operator, CollectionOperator compoundOperator, ValueProvider<IReadOnlyCollection<string>> values)
+        public StringCompoundCondition(StringOperator @operator, CollectionOperator compoundOperator, ValueProvider<IEnumerable<string>> values)
         {
             CompoundOperator = compoundOperator;
             Operator = @operator;
@@ -56,7 +56,5 @@ namespace Conditional
         public new StringCompoundCondition Clone() => new StringCompoundCondition(_operator, _compoundOperator, _values.CloneInternal());
 
         protected override ValueCondition<string> CloneInternal() => Clone();
-
-        protected override ValueCondition<string> GetInvertedCondition() => new StringCompoundCondition(_operator, _compoundOperator.Invert(), _values.CloneInternal());
     }
 }

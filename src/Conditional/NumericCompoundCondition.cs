@@ -9,7 +9,7 @@ namespace Conditional
     {
         private NumericOperator _operator;
         private CollectionOperator _compoundOperator;
-        private ValueProvider<IReadOnlyCollection<T>> _values;
+        private ValueProvider<IEnumerable<T>> _values;
 
         [JsonRequired]
         public NumericOperator Operator
@@ -26,13 +26,13 @@ namespace Conditional
         }
 
         [JsonRequired]
-        public ValueProvider<IReadOnlyCollection<T>> Values
+        public ValueProvider<IEnumerable<T>> Values
         {
             get => _values;
             set => _values = value ?? throw new ArgumentNullException(nameof(value));
         }
 
-        public NumericCompoundCondition(NumericOperator @operator, CollectionOperator compoundOperator, ValueProvider<IReadOnlyCollection<T>> values)
+        public NumericCompoundCondition(NumericOperator @operator, CollectionOperator compoundOperator, ValueProvider<IEnumerable<T>> values)
         {
             CompoundOperator = compoundOperator;
             Operator = @operator;
@@ -44,7 +44,5 @@ namespace Conditional
         public new NumericCompoundCondition<T> Clone() => new NumericCompoundCondition<T>(_operator, _compoundOperator, _values.CloneInternal());
 
         protected override ValueCondition<T> CloneInternal() => Clone();
-
-        protected override ValueCondition<T> GetInvertedCondition() => new NumericCompoundCondition<T>(_operator, _compoundOperator.Invert(), _values.CloneInternal());
     }
 }

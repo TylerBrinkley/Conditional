@@ -1,79 +1,86 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using EnumsNET;
 using Newtonsoft.Json;
 
 namespace Conditional
 {
-    public abstract class Condition<TConditionBase, TCondition>
-        where TConditionBase : Condition<TConditionBase, TCondition>
-        where TCondition : TConditionBase
+    public abstract class Condition<TCompoundCondition, TCondition>
+        where TCompoundCondition : Condition<TCompoundCondition, TCondition>
+        where TCondition : TCompoundCondition
     {
-        private Joiner? _joiner;
-        private IReadOnlyList<TConditionBase>? _conditions;
+        private readonly Joiner? _joiner;
+        private readonly IReadOnlyList<TCompoundCondition>? _conditions;
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        private Joiner? Joiner
-        {
-            get => ShouldSerializeJoiner() ? _joiner : null;
-            set => _joiner = value;
-        }
+#pragma warning disable IDE0051 // Remove unused private members, used only for serialization
+        private Joiner? Joiner => ShouldSerializeJoiner() ? _joiner : null;
+#pragma warning restore IDE0051 // Remove unused private members
 
         protected virtual bool ShouldSerializeJoiner() => true;
 
         protected Joiner? GetJoiner() => _joiner;
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore, TypeNameHandling = TypeNameHandling.None)]
-        private IReadOnlyList<TConditionBase>? Conditions
-        {
-            get => ShouldSerializeConditions() ? _conditions : null;
-            set => _conditions = value;
-        }
+#pragma warning disable IDE0051 // Remove unused private members, used only for serialization
+        private IReadOnlyList<TCompoundCondition>? Conditions => ShouldSerializeConditions() ? _conditions : null;
+#pragma warning restore IDE0051 // Remove unused private members
 
         protected virtual bool ShouldSerializeConditions() => true;
 
-        protected IReadOnlyList<TConditionBase>? GetConditions() => _conditions;
+        protected IReadOnlyList<TCompoundCondition>? GetConditions() => _conditions;
 
         protected Condition()
         {
+            if (GetType() == typeof(TCompoundCondition))
+            {
+                throw new InvalidOperationException($"cannot use this constructor for {typeof(TCompoundCondition)}");
+            }
         }
 
-        protected Condition(Joiner? joiner, IReadOnlyList<TConditionBase> conditions)
+        protected Condition(Joiner? joiner, IReadOnlyList<TCompoundCondition>? conditions)
         {
-            if (joiner.HasValue)
+            if (GetType() == typeof(TCompoundCondition))
             {
-                if (joiner < Conditional.Joiner.And || joiner > Conditional.Joiner.Or)
+                if (!joiner.HasValue)
                 {
-                    throw new ArgumentException("must be 'And' or 'Or'", nameof(joiner));
+                    throw new ArgumentNullException(nameof(joiner));
                 }
+                joiner.GetValueOrDefault().Validate(nameof(joiner));
                 if (conditions == null)
                 {
                     throw new ArgumentNullException(nameof(conditions));
                 }
 
-                Joiner = joiner;
-                Conditions = conditions;
+                _joiner = joiner;
+                _conditions = conditions;
             }
-            if (conditions != null)
+            else if (joiner.HasValue)
             {
-                throw new ArgumentException("joiner and conditions must both be null or not null");
+                throw new ArgumentException("must be null", nameof(joiner));
+            }
+            else if (conditions != null)
+            {
+                throw new ArgumentException("must be null", nameof(conditions));
             }
         }
 
-        protected TConditionBase And(TConditionBase condition) => Join(Conditional.Joiner.And, condition);
+        public TCompoundCondition And(TCompoundCondition condition) => Join(Conditional.Joiner.And, condition);
 
-        protected TConditionBase Or(TConditionBase condition) => Join(Conditional.Joiner.Or, condition);
+        public TCompoundCondition Or(TCompoundCondition condition) => Join(Conditional.Joiner.Or, condition);
 
-        private TConditionBase Join(Joiner joiner, TConditionBase condition)
+        private TCompoundCondition Join(Joiner joiner, TCompoundCondition condition)
         {
             if (condition == null)
             {
                 throw new ArgumentNullException(nameof(condition));
             }
 
-            var conditions = new List<TConditionBase>();
-            if (Joiner == joiner)
+            var conditions = new List<TCompoundCondition>();
+            if (_joiner == joiner)
             {
-                foreach (var c in Conditions!)
+                foreach (var c in _conditions!)
                 {
                     conditions.Add(c.CloneInternal());
                 }
@@ -82,9 +89,9 @@ namespace Conditional
             {
                 conditions.Add(CloneInternal());
             }
-            if (condition.Joiner == joiner)
+            if (condition._joiner == joiner)
             {
-                foreach (var c in condition.Conditions!)
+                foreach (var c in condition._conditions!)
                 {
                     conditions.Add(c.CloneInternal());
                 }
@@ -93,35 +100,17 @@ namespace Conditional
             {
                 conditions.Add(condition.CloneInternal());
             }
-            return GetJoinedCondition(joiner, conditions.AsReadOnly());
-        }
-
-        protected virtual TConditionBase GetInvertedCondition()
-        {
-            if (Conditions == null)
-            {
-                throw new InvalidOperationException("To use, must override Invert in derived class");
-            }
-
-            var conditions = new List<TConditionBase>(Conditions.Count);
-            foreach (var condition in conditions)
-            {
-                conditions.Add(condition.GetInvertedCondition());
-            }
-            return GetJoinedCondition(Joiner == Conditional.Joiner.And ? Conditional.Joiner.Or : Conditional.Joiner.And, conditions.AsReadOnly());
-        }
-
-        private TConditionBase GetJoinedCondition(Joiner joiner, IReadOnlyList<TConditionBase> conditions)
-        {
-            var joinedCondition = CreateJoinedCondition(joiner, conditions);
-            if (joinedCondition == null || joinedCondition.Joiner != joiner || joinedCondition.Conditions != conditions)
+            var readOnlyConditions = conditions.AsReadOnly();
+            var joinedCondition = CreateJoinedCondition(joiner, readOnlyConditions);
+            if (joinedCondition == null || joinedCondition._joiner != joiner || joinedCondition._conditions != readOnlyConditions)
             {
                 throw new InvalidOperationException("CreateJoinedCondition is not implemented properly");
             }
+            Debug.Assert(joinedCondition.GetType() == typeof(TCompoundCondition));
             return joinedCondition;
         }
 
-        protected abstract TConditionBase CreateJoinedCondition(Joiner joiner, IReadOnlyList<TConditionBase> conditions);
+        protected abstract TCompoundCondition CreateJoinedCondition(Joiner joiner, IReadOnlyList<TCompoundCondition> conditions);
 
         protected bool Evaluate(Func<TCondition, bool> evaluator, bool shortCircuit = true)
         {
@@ -148,20 +137,20 @@ namespace Conditional
                 throw new ArgumentNullException(nameof(orExpression));
             }
 
-            return Evaluate(evaluator, andExpression, orExpression, shortCircuitEvaluator);
+            return EvaluateInternal(evaluator, andExpression, orExpression, shortCircuitEvaluator);
         }
 
         private TResult EvaluateInternal<TResult>(Func<TCondition, TResult> evaluator, Func<TResult, TResult, TResult> andExpression, Func<TResult, TResult, TResult> orExpression, Func<Joiner, TResult, bool>? shortCircuitEvaluator)
         {
-            if (Conditions == null)
+            if (_conditions == null)
             {
                 return evaluator((TCondition)this);
             }
 
             TResult result = default!;
             var first = true;
-            var joiner = Joiner.GetValueOrDefault();
-            foreach (var condition in Conditions)
+            var joiner = _joiner.GetValueOrDefault();
+            foreach (var condition in _conditions)
             {
                 var evaluationResult = condition.EvaluateInternal(evaluator, andExpression, orExpression, shortCircuitEvaluator);
                 if (first)
@@ -181,6 +170,6 @@ namespace Conditional
             return result;
         }
 
-        protected virtual TConditionBase CloneInternal() => (TConditionBase)this;
+        protected virtual TCompoundCondition CloneInternal() => (TCompoundCondition)this;
     }
 }

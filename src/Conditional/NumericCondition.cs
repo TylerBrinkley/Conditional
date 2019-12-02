@@ -43,7 +43,5 @@ namespace Conditional
         public new NumericCondition<T> Clone() => new NumericCondition<T>(_operator, Value.CloneInternal());
 
         protected override ValueCondition<T> CloneInternal() => Clone();
-
-        protected override ValueCondition<T> GetInvertedCondition() => new NumericCondition<T>(_operator.Invert(), Value.CloneInternal());
     }
 }
