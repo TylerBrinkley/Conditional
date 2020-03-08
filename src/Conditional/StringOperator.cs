@@ -14,7 +14,7 @@ namespace Conditional
         StartsWith = 6,
         NotStartsWith = 7,
         EndsWith = 8,
-        NotEndsWIth = 9,
+        NotEndsWith = 9,
         EqualInLength = 10,
         NotEqualInLength = 11,
         ShorterThan = 12,

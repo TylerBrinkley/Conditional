@@ -10,10 +10,8 @@ namespace Conditional
         NotEquals = 1,
         LessThan = 2,
         GreaterThanOrEqual = 3,
-        NotLessThan = GreaterThanOrEqual,
         GreaterThan = 4,
-        LessThanOrEqual = 5,
-        NotGreaterThan = LessThanOrEqual
+        LessThanOrEqual = 5
     }
 
     public static class NumericOperatorExtensions

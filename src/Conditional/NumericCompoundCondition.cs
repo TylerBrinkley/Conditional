@@ -7,25 +7,22 @@ namespace Conditional
 {
     public sealed class NumericCompoundCondition<T> : ValueCondition<T>
     {
-        private NumericOperator _operator;
-        private CollectionOperator _compoundOperator;
+        private ValueProvider<NumericOperator> _operator;
+        private ValueProvider<CollectionOperator> _compoundOperator;
         private ValueProvider<IEnumerable<T>> _values;
 
-        [JsonRequired]
-        public NumericOperator Operator
+        public ValueProvider<NumericOperator> Operator
         {
             get => _operator;
-            set => _operator = value.Validate(nameof(value));
+            set => _operator = value ?? throw new ArgumentNullException(nameof(value));
         }
 
-        [JsonRequired]
-        public CollectionOperator CompoundOperator
+        public ValueProvider<CollectionOperator> CompoundOperator
         {
             get => _compoundOperator;
-            set => _compoundOperator = value.Validate(nameof(value));
+            set => _compoundOperator = value ?? throw new ArgumentNullException(nameof(value));
         }
 
-        [JsonRequired]
         public ValueProvider<IEnumerable<T>> Values
         {
             get => _values;
@@ -33,16 +30,18 @@ namespace Conditional
         }
 
         public NumericCompoundCondition(NumericOperator @operator, CollectionOperator compoundOperator, ValueProvider<IEnumerable<T>> values)
+            : this((ValueProvider<NumericOperator>)@operator.Validate(nameof(@operator)), compoundOperator.Validate(nameof(compoundOperator)), values)
+        {
+        }
+
+        [JsonConstructor]
+        public NumericCompoundCondition(ValueProvider<NumericOperator> @operator, ValueProvider<CollectionOperator> compoundOperator, ValueProvider<IEnumerable<T>> values)
         {
             CompoundOperator = compoundOperator;
             Operator = @operator;
             Values = values;
         }
 
-        public override bool Evaluate(T value, object? context) => _compoundOperator.Evaluate(_values.GetValue(context), v => _operator.Evaluate(value, v));
-
-        public new NumericCompoundCondition<T> Clone() => new NumericCompoundCondition<T>(_operator, _compoundOperator, _values.CloneInternal());
-
-        protected override ValueCondition<T> CloneInternal() => Clone();
+        public override bool Evaluate(T value, object? context) => _compoundOperator.GetValue(context).Evaluate(_values.GetValue(context), v => _operator.GetValue(context).Evaluate(value, v));
     }
 }

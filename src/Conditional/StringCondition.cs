@@ -1,37 +1,43 @@
 ﻿using EnumsNET;
 using Newtonsoft.Json;
+using System;
 
 namespace Conditional
 {
-    public sealed class StringCondition : ValueCondition<string>
+    public sealed class StringCondition : ValueCondition<string?>
     {
-        private StringOperator _operator;
+        private ValueProvider<StringOperator> _operator;
+        private ValueProvider<string?> _value;
 
-        [JsonRequired]
-        public StringOperator Operator
+        public ValueProvider<StringOperator> Operator
         {
             get => _operator;
-            set => _operator = value.Validate(nameof(value));
+            set => _operator = value ?? throw new ArgumentNullException(nameof(value));
         }
 
-        public ValueProvider<string>? Value { get; set; }
+        public ValueProvider<string?> Value
+        {
+            get => _value;
+            set => _value = value ?? throw new ArgumentNullException(nameof(value));
+        }
 
         public StringCondition(StringOperator @operator, string? value)
-            : this(@operator, ValueProvider.Create(value))
+            : this(@operator, (ValueProvider<string?>)value)
+        {
+        }
+
+        public StringCondition(StringOperator @operator, ValueProvider<string?> value)
+            : this((ValueProvider<StringOperator>)@operator.Validate(nameof(value)), value)
         {
         }
 
         [JsonConstructor]
-        public StringCondition(StringOperator @operator, ValueProvider<string>? value)
+        public StringCondition(ValueProvider<StringOperator> @operator, ValueProvider<string?> value)
         {
             Operator = @operator;
             Value = value;
         }
 
-        public override bool Evaluate(string? value, object? context) => _operator.Evaluate(value, Value?.GetValue(context));
-
-        public new StringCondition Clone() => new StringCondition(_operator, Value?.CloneInternal());
-
-        protected override ValueCondition<string> CloneInternal() => Clone();
+        public override bool Evaluate(string? value, object? context) => _operator.GetValue(context).Evaluate(value, _value.GetValue(context));
     }
 }

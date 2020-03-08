@@ -2,15 +2,6 @@
 
 namespace Conditional
 {
-    public static class ValueProvider
-    {
-        public static ValueProvider<T>? Create<T>(T? nullableValue)
-            where T : struct => nullableValue.HasValue ? new ValueProvider<T>(nullableValue.GetValueOrDefault()) : null;
-
-        public static ValueProvider<T>? Create<T>(T? nullableValue)
-            where T : class => nullableValue != null ? new ValueProvider<T>(nullableValue) : null;
-    }
-
     public class ValueProvider<T>
     {
         public static implicit operator ValueProvider<T>(T value) => new ValueProvider<T>(value);
@@ -18,6 +9,7 @@ namespace Conditional
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore, TypeNameHandling = TypeNameHandling.None)]
         public Value<T>? Value { get; }
 
+        [JsonConstructor]
         public ValueProvider(T value)
         {
             Value = value;
@@ -30,7 +22,5 @@ namespace Conditional
         public T GetValue() => GetValue(null);
 
         public virtual T GetValue(object? context) => Value!.Value;
-
-        protected internal virtual ValueProvider<T> CloneInternal() => this;
     }
 }

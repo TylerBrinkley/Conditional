@@ -6,12 +6,12 @@ using Newtonsoft.Json;
 
 namespace Conditional
 {
-    public abstract class Condition<TCompoundCondition, TCondition>
-        where TCompoundCondition : Condition<TCompoundCondition, TCondition>
-        where TCondition : TCompoundCondition
+    public abstract class Condition<TConditionBase, TCondition>
+        where TConditionBase : Condition<TConditionBase, TCondition>
+        where TCondition : TConditionBase
     {
         private readonly Joiner? _joiner;
-        private readonly IReadOnlyList<TCompoundCondition>? _conditions;
+        private readonly IReadOnlyList<TConditionBase>? _conditions;
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
 #pragma warning disable IDE0051 // Remove unused private members, used only for serialization
@@ -24,24 +24,24 @@ namespace Conditional
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore, TypeNameHandling = TypeNameHandling.None)]
 #pragma warning disable IDE0051 // Remove unused private members, used only for serialization
-        private IReadOnlyList<TCompoundCondition>? Conditions => ShouldSerializeConditions() ? _conditions : null;
+        private IReadOnlyList<TConditionBase>? Conditions => ShouldSerializeConditions() ? _conditions : null;
 #pragma warning restore IDE0051 // Remove unused private members
 
         protected virtual bool ShouldSerializeConditions() => true;
 
-        protected IReadOnlyList<TCompoundCondition>? GetConditions() => _conditions;
+        protected IReadOnlyList<TConditionBase>? GetConditions() => _conditions;
 
         protected Condition()
         {
-            if (GetType() == typeof(TCompoundCondition))
+            if (GetType() == typeof(TConditionBase))
             {
-                throw new InvalidOperationException($"cannot use this constructor for {typeof(TCompoundCondition)}");
+                throw new InvalidOperationException($"cannot use this constructor for {typeof(TConditionBase)}");
             }
         }
 
-        protected Condition(Joiner? joiner, IReadOnlyList<TCompoundCondition>? conditions)
+        protected Condition(Joiner? joiner, IReadOnlyList<TConditionBase>? conditions)
         {
-            if (GetType() == typeof(TCompoundCondition))
+            if (GetType() == typeof(TConditionBase))
             {
                 if (!joiner.HasValue)
                 {
@@ -66,18 +66,18 @@ namespace Conditional
             }
         }
 
-        public TCompoundCondition And(TCompoundCondition condition) => Join(Conditional.Joiner.And, condition);
+        public TConditionBase And(TConditionBase condition) => Join(Conditional.Joiner.And, condition);
 
-        public TCompoundCondition Or(TCompoundCondition condition) => Join(Conditional.Joiner.Or, condition);
+        public TConditionBase Or(TConditionBase condition) => Join(Conditional.Joiner.Or, condition);
 
-        private TCompoundCondition Join(Joiner joiner, TCompoundCondition condition)
+        private TConditionBase Join(Joiner joiner, TConditionBase condition)
         {
             if (condition == null)
             {
                 throw new ArgumentNullException(nameof(condition));
             }
 
-            var conditions = new List<TCompoundCondition>();
+            var conditions = new List<TConditionBase>();
             if (_joiner == joiner)
             {
                 foreach (var c in _conditions!)
@@ -106,11 +106,11 @@ namespace Conditional
             {
                 throw new InvalidOperationException("CreateJoinedCondition is not implemented properly");
             }
-            Debug.Assert(joinedCondition.GetType() == typeof(TCompoundCondition));
+            Debug.Assert(joinedCondition.GetType() == typeof(TConditionBase));
             return joinedCondition;
         }
 
-        protected abstract TCompoundCondition CreateJoinedCondition(Joiner joiner, IReadOnlyList<TCompoundCondition> conditions);
+        protected abstract TConditionBase CreateJoinedCondition(Joiner joiner, IReadOnlyList<TConditionBase> conditions);
 
         protected bool Evaluate(Func<TCondition, bool> evaluator, bool shortCircuit = true)
         {
@@ -170,6 +170,12 @@ namespace Conditional
             return result;
         }
 
-        protected virtual TCompoundCondition CloneInternal() => (TCompoundCondition)this;
+        protected virtual TConditionBase CloneInternal() => (TConditionBase)this;
+    }
+
+    public enum Joiner
+    {
+        And = 0,
+        Or = 1
     }
 }
